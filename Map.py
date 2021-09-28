@@ -239,10 +239,75 @@ class Map_Obj():
         # Show image
         image.show()
 
+    def g_cost(self, start, end):
+        distance = (start[0]-end[0], start[1]-end[1])
+        return np.linalg.norm(distance)
+
+    
+    def h_cost(self, start, end):
+        distance = (start[0]-end[0], start[1]-end[1])
+        return np.linalg.norm(distance)
+
+    
+    def f_cost(self, start, end):
+        return self.g_cost(start, end) + self.h_cost(start, end)
+        
+    def lowest_f_cost(self, list, start, end):
+        current_node = None
+        current_f_cost = np.inf
+        for node in list:
+            if self.f_cost(start, node, end) < current_f_cost:
+                current_node = node
+        #det med at man har samme af cost må sjekke h cost
+        return current_node
+
+    def best_first_algorithm(self, start, end):
+        current = start
+        open = [current]
+        closed = []
+        active = True
+
+        while(active):
+            current = self.lowest_f_cost(open, start, end)
+            open.remove(current)
+            closed.append(current)
+            if current == end:
+                return
+            temp = []
+            for pos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
+                try: 
+                    temp_neighbour = self.int_map[current[0]+pos[0]][current[1]+pos[1]]
+                except:
+                    temp_neighbour = -1
+                if (temp_neighbour != -1 and temp_neighbour not in closed):
+                    temp.append((current[0]+pos[0], current[1]+pos[1]))
+
+                
+                
+
+
+
 def main():
     """main function"""
-    test1 = Map_Obj()
+    test1 = Map_Obj(task = 1)
     test1.show_map()
+    test = Map_Obj()
+  
+    print((3,2) == (1,2))
+
+    """test.show_map()"""
+    """test.show_map()
+    print(test.str_map)
+    first = test.pick_move()
+    test.replace_map_values(first,"1",test.end_goal_pos)
+    test.show_map()
+    print("testing for 10 iterations")
+    for x in range(10):
+        test.replace_map_values([10+x,10],"1",test.end_goal_pos)
+    test.show_map()"""
+    print(test.int_map)
+    print(test.int_map[35][21])
 
 if __name__ == '__main__':
         main()
+
