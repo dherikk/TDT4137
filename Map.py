@@ -238,3 +238,11 @@ class Map_Obj():
                                y * scale + j] = colors[map[y][x]]
         # Show image
         image.show()
+
+def main():
+    """main function"""
+    test1 = Map_Obj()
+    test1.show_map()
+
+if __name__ == '__main__':
+        main()
