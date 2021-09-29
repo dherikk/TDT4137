@@ -1,5 +1,5 @@
 import numpy as np
-
+from .Node import Node
 np.set_printoptions(threshold=np.inf, linewidth=300)
 import time
 
@@ -192,18 +192,20 @@ class Map_Obj():
         else:
             map[goal_pos[0]][goal_pos[1]] = ' G '
 
-    def show_map(self, map=None):
+    def make_map(self, map=None):
         """
         A function used to draw the map as an image and show it.
         :param map: map to use
         :return: nothing.
         """
+        isNone = False
         # If a map is provided, set the goal and start positions
         if map is not None:
             self.set_start_pos_str_marker(self.start_pos, map)
             self.set_goal_pos_str_marker(self.goal_pos, map)
         # If no map is provided, use string_map
         else:
+            isNone = True
             map = self.str_map
 
         # Define width and height of image
@@ -225,6 +227,8 @@ class Map_Obj():
             ' , ': (166, 166, 166),
             ' : ': (96, 96, 96),
             ' ; ': (36, 36, 36),
+            ' O ': (124, 252, 0),
+            ' C ': (255, 255, 0),
             ' S ': (255, 0, 255),
             ' G ': (0, 128, 255)
         }
@@ -237,7 +241,9 @@ class Map_Obj():
                         pixels[x * scale + i,
                                y * scale + j] = colors[map[y][x]]
         # Show image
-        image.show()
+        if isNone:
+            image.show()
+        return image
 
     def g_cost(self, start, end):
         distance = (start[0]-end[0], start[1]-end[1])
@@ -247,42 +253,60 @@ class Map_Obj():
     def h_cost(self, start, end):
         distance = (start[0]-end[0], start[1]-end[1])
         return np.linalg.norm(distance)
-
     
-    def f_cost(self, start, end):
-        return self.g_cost(start, end) + self.h_cost(start, end)
+    def f_cost(self, node, start, end):
+        return self.g_cost(start, node.pos) + self.h_cost(node.pos, end)
         
     def lowest_f_cost(self, list, start, end):
         current_node = None
         current_f_cost = np.inf
         for node in list:
-            if self.f_cost(start, node, end) < current_f_cost:
+            if self.f_cost(node, start, end) < current_f_cost:
                 current_node = node
-        #det med at man har samme af cost må sjekke h cost
         return current_node
 
     def best_first_algorithm(self, start, end):
-        current = start
-        open = [current]
+        start_node = Node(None, start)
+        end_node = Node(None, end)
+        open = []
         closed = []
-        active = True
+        open.append(start_node)
 
-        while(active):
+        while(len(open) > 0):
+            images = []
+            images.append(self.make_map())
             current = self.lowest_f_cost(open, start, end)
             open.remove(current)
             closed.append(current)
             if current == end:
                 return
-            temp = []
+            adj = []
             for pos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-                try: 
-                    temp_neighbour = self.int_map[current[0]+pos[0]][current[1]+pos[1]]
-                except:
-                    temp_neighbour = -1
-                if (temp_neighbour != -1 and temp_neighbour not in closed):
-                    temp.append((current[0]+pos[0], current[1]+pos[1]))
+                node_pos = (current.pos[0] + pos[0], current.pos[1] + pos[1])
+                if node_pos[0] > self.str_map.shape[0] or node_pos[1] > self.str_map.shape[0]:
+                    continue
+                if self.str_map[node_pos[0]][node_pos[1]] == -1:
+                    continue
+                child_node = Node(current, (node_pos[0], node_pos[1]))
+                adj.append(child_node)
 
-                
+            for el in adj:
+
+                temp = self.str_map                 # Kode som lager map
+                temp[el.pos[0]][el.pos[1]] = ' O '  # Putter ' O ' i hver child
+                images.append(self.make_map(temp))  # Må lage en for closed også
+
+                for node in closed:
+                    if el == node:
+                        continue
+                el.g_cost = self.g_cost(start, el.pos)
+                el.h_cost = self.h_cost(end, el.pos) # hva skjer med disse funksjonene? Må fikse riktige verdier her
+                el.f_cost = self.f_cost(el, start, end) 
+
+                for node in open:
+                    if el == node and el.g_cost > node.g_cost:
+                        continue
+                open.append(el)       
                 
 
 
@@ -292,7 +316,6 @@ def main():
     test1 = Map_Obj(task = 1)
     test1.show_map()
     test = Map_Obj()
-  
     print((3,2) == (1,2))
 
     """test.show_map()"""
