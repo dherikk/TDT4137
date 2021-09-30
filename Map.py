@@ -1,5 +1,5 @@
 import numpy as np
-from .Node import Node
+from Node import Node
 np.set_printoptions(threshold=np.inf, linewidth=300)
 import time
 
@@ -265,48 +265,91 @@ class Map_Obj():
                 current_node = node
         return current_node
 
-    def best_first_algorithm(self, start, end):
+    def astar(self, maze, start, end):
+        """Returns a list of tuples as a path from the given start to the given end in the given maze"""
+
+        # Create start and end node
         start_node = Node(None, start)
+        start_node.g = start_node.h = start_node.f = 0
         end_node = Node(None, end)
-        open = []
-        closed = []
-        open.append(start_node)
+        end_node.g = end_node.h = end_node.f = 0
 
-        while(len(open) > 0):
-            images = []
-            images.append(self.make_map())
-            current = self.lowest_f_cost(open, start, end)
-            open.remove(current)
-            closed.append(current)
-            if current == end:
-                return
-            adj = []
-            for pos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-                node_pos = (current.pos[0] + pos[0], current.pos[1] + pos[1])
-                if node_pos[0] > self.str_map.shape[0] or node_pos[1] > self.str_map.shape[0]:
+        # Initialize both open and closed list
+        open_list = []
+        closed_list = []
+
+        # Add the start node
+        open_list.append(start_node)
+
+        # Loop until you find the end
+        while len(open_list) > 0:
+            # Get the current node
+            current_node = open_list[0]
+            current_index = 0
+            for index, item in enumerate(open_list):
+                if item.f < current_node.f:
+                    current_node = item
+                    current_index = index
+
+            # Pop current off open list, add to closed list
+            open_list.pop(current_index)
+            closed_list.append(current_node)
+
+            # Found the goal
+            print('current node and end_node is:', current_node.position, end_node.position)
+            if current_node == end_node:
+                path = []
+                current = current_node
+                while current is not None:
+                    path.append(current.position)
+                    current = current.parent
+                return path[::-1] # Return reversed path
+
+            # Generate children
+            children = []
+            for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
+
+                # Get node position
+                node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+
+                # Make sure within range
+                if node_position[0] > (len(self.int_map) - 1) or node_position[0] < 0 or node_position[1] > (len(self.int_map[len(self.int_map)-1]) -1) or node_position[1] < 0:
                     continue
-                if self.str_map[node_pos[0]][node_pos[1]] == -1:
+
+                # Make sure walkable terrain
+                if maze[node_position[0]][node_position[1]] != 1:
+                    print("jkhh", maze[node_position[0]][node_position[1]])
                     continue
-                child_node = Node(current, (node_pos[0], node_pos[1]))
-                adj.append(child_node)
 
-            for el in adj:
+                # Create new node
+                new_node = Node(current_node, node_position)
 
-                temp = self.str_map                 # Kode som lager map
-                temp[el.pos[0]][el.pos[1]] = ' O '  # Putter ' O ' i hver child
-                images.append(self.make_map(temp))  # Må lage en for closed også
+                # Append
+                children.append(new_node)
 
-                for node in closed:
-                    if el == node:
+            # Loop through children
+            for child in children:
+
+                # Child is on the closed list
+                for closed_child in closed_list:
+                    if child == closed_child:
                         continue
-                el.g_cost = self.g_cost(start, el.pos)
-                el.h_cost = self.h_cost(end, el.pos) # hva skjer med disse funksjonene? Må fikse riktige verdier her
-                el.f_cost = self.f_cost(el, start, end) 
 
-                for node in open:
-                    if el == node and el.g_cost > node.g_cost:
+                # Create the f, g, and h values
+                child.g = current_node.g + 1
+                child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
+                child.f = child.g + child.h
+
+                # Child is already in the open list
+                for open_node in open_list:
+                    if child == open_node and child.g > open_node.g:
                         continue
-                open.append(el)       
+
+                # Add the child to the open list
+                open_list.append(child)
+
+        return [None, None]
+
                 
 
 
@@ -314,22 +357,9 @@ class Map_Obj():
 def main():
     """main function"""
     test1 = Map_Obj(task = 1)
-    test1.show_map()
-    test = Map_Obj()
-    print((3,2) == (1,2))
+    a = test1.astar(test1.int_map, (27,18), (40,32))
+    print(a)
 
-    """test.show_map()"""
-    """test.show_map()
-    print(test.str_map)
-    first = test.pick_move()
-    test.replace_map_values(first,"1",test.end_goal_pos)
-    test.show_map()
-    print("testing for 10 iterations")
-    for x in range(10):
-        test.replace_map_values([10+x,10],"1",test.end_goal_pos)
-    test.show_map()"""
-    print(test.int_map)
-    print(test.int_map[35][21])
 
 if __name__ == '__main__':
         main()

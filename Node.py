@@ -1,13 +1,13 @@
 class Node():
-    def __init__(self, parent, pos):
+    """A node class for A* Pathfinding"""
+
+    def __init__(self, parent=None, position=None):
         self.parent = parent
-        self.pos = pos
-        self.g_cost = 0
-        self.h_cost = 0
-        self.f_cost = 0
+        self.position = position
 
-    def __eq__(self, o: object) -> bool:
-        return o.pos == self.pos
+        self.g = 0
+        self.h = 0
+        self.f = 0
 
-    def getpos(self):
-        return self.pos
+    def __eq__(self, other):
+        return self.position == other.position
