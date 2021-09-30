@@ -1,6 +1,5 @@
 import numpy as np
-from Node import Node
-np.set_printoptions(threshold=np.inf, linewidth=300)
+from Node import *
 import time
 
 import pandas as pd
@@ -192,20 +191,18 @@ class Map_Obj():
         else:
             map[goal_pos[0]][goal_pos[1]] = ' G '
 
-    def make_map(self, map=None):
+    def show_map(self, map=None):
         """
         A function used to draw the map as an image and show it.
         :param map: map to use
         :return: nothing.
         """
-        isNone = False
         # If a map is provided, set the goal and start positions
         if map is not None:
             self.set_start_pos_str_marker(self.start_pos, map)
             self.set_goal_pos_str_marker(self.goal_pos, map)
         # If no map is provided, use string_map
         else:
-            isNone = True
             map = self.str_map
 
         # Define width and height of image
@@ -227,10 +224,10 @@ class Map_Obj():
             ' , ': (166, 166, 166),
             ' : ': (96, 96, 96),
             ' ; ': (36, 36, 36),
-            ' O ': (124, 252, 0),
-            ' C ': (255, 255, 0),
             ' S ': (255, 0, 255),
-            ' G ': (0, 128, 255)
+            ' G ': (0, 128, 255),
+            ' O ': (0, 255, 0),
+            ' C ': (0, 0, 255)
         }
         # Go through image and set pixel color for every position
         for y in range(height):
@@ -241,126 +238,133 @@ class Map_Obj():
                         pixels[x * scale + i,
                                y * scale + j] = colors[map[y][x]]
         # Show image
-        if isNone:
-            image.show()
         return image
 
-    def g_cost(self, start, end):
-        distance = (start[0]-end[0], start[1]-end[1])
-        return np.linalg.norm(distance)
+    def return_path(self, current_node):
+        path = []
+        current = current_node
+        while current is not None:
+            path.append(current.pos)
+            current = current.par
+        g = path[::-1]
+        for i in g:
+            self.str_map[i[0]][i[1]] = ' S '
+        return g
 
-    
-    def h_cost(self, start, end):
-        distance = (start[0]-end[0], start[1]-end[1])
-        return np.linalg.norm(distance)
-    
-    def f_cost(self, node, start, end):
-        return self.g_cost(start, node.pos) + self.h_cost(node.pos, end)
-        
-    def lowest_f_cost(self, list, start, end):
-        current_node = None
-        current_f_cost = np.inf
-        for node in list:
-            if self.f_cost(node, start, end) < current_f_cost:
-                current_node = node
-        return current_node
+    def dist(actual_pos, goal_pos, norm="manhattan"):
+        if norm=="manhattan" or "L1":
+            return np.abs(actual_pos[0]-goal_pos[0]) + np.abs(actual_pos[1]-goal_pos[1])
+        if norm=="euclidean" or "L2":
+            return np.sqrt(np.abs(actual_pos[0]-goal_pos[0])**2 + np.abs(actual_pos[1]-goal_pos[1])**2)
 
-    def astar(self, maze, start, end):
-        """Returns a list of tuples as a path from the given start to the given end in the given maze"""
+# Check if a neighbor should be added to open list
+    def add_to_open(open, neighbour):
+        for node in open:
+            if (neighbour == node and neighbour.f >= node.f):
+                return False
+        return True
 
-        # Create start and end node
+
+    def astar(self, start, end):
+        """
+        Returns the path as a list of tuples from start to end in the given map
+        :param start:   the start node
+        :param end:     the goal node
+        :return:
+        """
+
+        #setup the start and goalnodes
         start_node = Node(None, start)
-        start_node.g = start_node.h = start_node.f = 0
-        end_node = Node(None, end)
-        end_node.g = end_node.h = end_node.f = 0
+        goal_node = Node(None, end)
+        start_node.g = 0
+        start_node.h = dist(start_node.pos, goal_node.pos)
+        start_node.f = start_node.g+start_node.h
+        goal_node.g = goal_node.h = goal_node.f = 0
+        images = []
+        images.append(self.show_map())
+        
 
-        # Initialize both open and closed list
+        #initialize the open and closed lists
         open_list = []
         closed_list = []
-
-        # Add the start node
-        open_list.append(start_node)
-
-        # Loop until you find the end
+        open_list.append(start_node) ###############
+        
+        n_iter=0
+        #loop until you find the goal node
         while len(open_list) > 0:
-            # Get the current node
-            current_node = open_list[0]
-            current_index = 0
-            for index, item in enumerate(open_list):
-                if item.f < current_node.f:
-                    current_node = item
-                    current_index = index
 
-            # Pop current off open list, add to closed list
-            open_list.pop(current_index)
+            n_iter+=1
+            #get the current node and add it to the closed list
+            current_node = open_list[-1] ########
             closed_list.append(current_node)
 
-            # Found the goal
-            print('current node and end_node is:', current_node.position, end_node.position)
-            if current_node == end_node:
-                path = []
-                current = current_node
-                while current is not None:
-                    path.append(current.position)
-                    current = current.parent
-                return path[::-1] # Return reversed path
-
-            # Generate children
-            children = []
-            for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
-
-                # Get node position
-                node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
-
-                # Make sure within range
-                if node_position[0] > (len(self.int_map) - 1) or node_position[0] < 0 or node_position[1] > (len(self.int_map[len(self.int_map)-1]) -1) or node_position[1] < 0:
-                    continue
-
-                # Make sure walkable terrain
-                if maze[node_position[0]][node_position[1]] != 1:
-                    print("jkhh", maze[node_position[0]][node_position[1]])
-                    continue
-
-                # Create new node
-                new_node = Node(current_node, node_position)
-
-                # Append
-                children.append(new_node)
-
-            # Loop through children
-            for child in children:
-
-                # Child is on the closed list
-                for closed_child in closed_list:
-                    if child == closed_child:
-                        continue
-
-                # Create the f, g, and h values
-                child.g = current_node.g + 1
-                child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
-                child.f = child.g + child.h
-
-                # Child is already in the open list
-                for open_node in open_list:
-                    if child == open_node and child.g > open_node.g:
-                        continue
-
-                # Add the child to the open list
-                open_list.append(child)
-
-        return [None, None]
-
+            for i in open_list:
+                self.str_map[i.pos[0]][i.pos[1]] = ' O '
+            for i in closed_list:
+                self.str_map[i.pos[0]][i.pos[1]] = ' C '
+            images.append(self.show_map())
+            #if we are at goal
+            if current_node==goal_node:
+                temp = self.return_path(current_node)
+                images[0].save('task1.gif',
+                save_all=True, append_images=images[1:], optimize=False, duration=len(images)*10, loop=0)
+                return temp
+            
+            #unzip the current location
+            (x,y)=current_node.pos
+            
+            #define the nodes neighbours
+            neighbours=[(x-1,y),(x+1,y),(x,y-1),(x,y+1)]
+            
+            #generate children
+            for new_pos in neighbours:
                 
-
-
+                #get value from map
+                map_value=self.int_map[new_pos[0]][new_pos[1]]
+                
+                #avoid roadblocks
+                if map_value == -1:
+                    continue
+                
+                #create neighbour node
+                neighbour=Node(current_node,new_pos)
+                
+                #check if new node is already in closed_list
+                if neighbour in closed_list:
+                    continue
+                
+                #set the dists
+                #neighbour.g = dist(neighbour.pos, start_node.pos, 'L1')
+                neighbour.g = dist(neighbour.pos, start_node.pos, 'L1')
+                neighbour.h = dist(neighbour.pos, goal_node.pos, 'L1')
+                neighbour.f = neighbour.g + neighbour.h
+                
+                #check if we should explore
+                if add_to_open(open_list, neighbour):
+                    open_list.append(neighbour)
+                    
+        #no path is found
+        return None
 
 def main():
-    """main function"""
-    test1 = Map_Obj(task = 1)
-    a = test1.astar(test1.int_map, (27,18), (40,32))
-    print(a)
-
+    map1=Map_Obj(task=1)
+    #get the start and goal nodes and unzip their components
+    start=map1.get_start_pos()
+    startnode=(start[0],start[1])
+    goal=map1.get_goal_pos()
+    goalnode=(goal[0],goal[1])
+    print(startnode,goalnode)
+    #run the algorithm
+    res=map1.astar(startnode ,goalnode)
+    #and print the result
+    print(res)
+    """visual=kart
+    #visualize the path
+    for koord in res:
+        visual[koord[0]][koord[1]] = '-> '
+    #show the solution
+    map1.print_map(visual)
+    map1.show_map(visual)"""
 
 if __name__ == '__main__':
         main()
-
