@@ -1,7 +1,7 @@
 import numpy as np
 from Node import *
 import time
-
+import heapq
 import pandas as pd
 from PIL import Image
 
@@ -287,7 +287,9 @@ class Map_Obj():
         #initialize the open and closed lists
         open_list = []
         closed_list = []
-        open_list.append(start_node) ###############
+        heapq.heapify(open_list) 
+        heapq.heappush(open_list, start_node)
+        ###############open_list.append(start_node) 
         
         n_iter=0
         #loop until you find the goal node
@@ -295,7 +297,8 @@ class Map_Obj():
 
             n_iter+=1
             #get the current node and add it to the closed list
-            current_node = open_list[-1] ########
+            ########current_node = open_list[-1] 
+            current_node = heapq.heappop(open_list)
             closed_list.append(current_node)
 
             for i in open_list:
@@ -303,11 +306,12 @@ class Map_Obj():
             for i in closed_list:
                 self.str_map[i.pos[0]][i.pos[1]] = ' C '
             images.append(self.show_map())
+            print("Image array length", len(images))
             #if we are at goal
             if current_node==goal_node:
                 temp = self.return_path(current_node)
-                images[0].save('task1.gif',
-                save_all=True, append_images=images[1:], optimize=False, duration=len(images)*10, loop=0)
+                images[0].save('task2.gif',
+                save_all=True, append_images=images[1:], optimize=False, duration=len(images)*3, loop=0)
                 return temp
             
             #unzip the current location
@@ -347,7 +351,7 @@ class Map_Obj():
         return None
 
 def main():
-    map1=Map_Obj(task=1)
+    map1=Map_Obj(task=2)
     #get the start and goal nodes and unzip their components
     start=map1.get_start_pos()
     startnode=(start[0],start[1])
@@ -358,13 +362,6 @@ def main():
     res=map1.astar(startnode ,goalnode)
     #and print the result
     print(res)
-    """visual=kart
-    #visualize the path
-    for koord in res:
-        visual[koord[0]][koord[1]] = '-> '
-    #show the solution
-    map1.print_map(visual)
-    map1.show_map(visual)"""
 
 if __name__ == '__main__':
         main()
